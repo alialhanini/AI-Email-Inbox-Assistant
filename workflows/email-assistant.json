@@ -1,0 +1,904 @@
+{
+  "name": "AiEmail_assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "id": "859ba672-3967-4b26-93ac-c2a82e1aa576",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -384,
+        32
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI Email Assistant.\n\nAnalyze this email:\nFrom: {{ $('Gmail Trigger').item.json.from.text }}\nTo: {{ $('Gmail Trigger').item.json.to.text }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\nEmail:\n{{ $('Gmail Trigger').item.json.text }}\n\nPRIORITY RULES:\n\n* Urgent: Immediate action is required, such as emergencies, account security threats, deadlines within hours, or serious problems that cannot wait. If the email explicitly states a time-sensitive consequence (e.g. \"within X hours\", \"account suspended\", \"security breach\", \"action required immediately\"), classify as Urgent even if the action itself seems simple.\n* High: Important action is required soon, such as a confirmed interview happening within 24 hours, a job offer requiring a quick response, payment problems, or critical work matters.\n* Medium: The email requires a response or action, but there is no immediate deadline or urgent consequence. Examples include interview scheduling with several available dates/times, job application follow-ups, recruiter messages, meeting requests, and normal work requests.\n* Low: Informational emails, newsletters, notifications, advertisements, receipts, general updates, or emails that do not require action.\n\nIMPORTANT:\nDo not classify an email as High simply because it is related to a job opportunity or requires a reply.\nIf there is no urgent deadline or immediate consequence, prefer Medium.\n\nDetermine the sender and recipient from the actual From and To fields.\nWrite the draft reply naturally with proper paragraphs, in a professional tone.\nKeep the summary concise (1-2 sentences).\nIf REQUIRES REPLY is No, set draft_reply to \"No reply needed\".\n\nExtract all URLs/links and phone numbers from the email.\nDo not invent, modify, shorten, or remove URLs or phone numbers.\nIf none exist, return an empty array.\n\nInclude important URLs and phone numbers naturally in the summary when they are relevant to the user.\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "id": "00fcfbe7-2076-4c23-ab8d-265a596c9002",
+      "name": "Basic LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"category\": {\n      \"type\": \"string\",\n      \"description\": \"The general category of the email, e.g. Job Opportunity, Security Alert, Newsletter, Meeting Request\"\n    },\n    \"priority\": {\n      \"type\": \"string\",\n      \"enum\": [\"Low\", \"Medium\", \"High\", \"Urgent\"],\n      \"description\": \"The priority level based on the priority rules\"\n    },\n    \"summary\": {\n      \"type\": \"string\",\n      \"description\": \"A short concise 1-2 sentence summary of the email. Include important phone numbers, URLs, links, dates, times, names, or other critical details when relevant.\"\n    },\n    \"action\": {\n      \"type\": \"string\",\n      \"description\": \"The recommended next action\"\n    },\n    \"requires_reply\": {\n      \"type\": \"string\",\n      \"enum\": [\"Yes\", \"No\"],\n      \"description\": \"Whether this email requires a reply\"\n    },\n    \"draft_reply\": {\n      \"type\": \"string\",\n      \"description\": \"A professional draft reply if needed, otherwise 'No reply needed'\"\n    },\n    \"links\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"All URLs or clickable links found in the email. Do not invent or modify them. Return an empty array if none exist.\"\n    },\n    \"phone_numbers\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"All phone numbers found in the email. Do not invent or modify them. Return an empty array if none exist.\"\n    }\n  },\n  \"required\": [\n    \"category\",\n    \"priority\",\n    \"summary\",\n    \"action\",\n    \"requires_reply\",\n    \"draft_reply\",\n    \"links\",\n    \"phone_numbers\"\n  ]\n}"
+      },
+      "id": "5994845c-9f62-4e3a-ad82-684a6d3a1200",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        144,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fd411eed-9309-45cf-9982-1ea9e4a55930",
+              "leftValue": "={{ $json.requires_reply }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8727d1bf-781c-4c29-87eb-209f7bdf6175",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        496,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        192
+      ],
+      "id": "897b3823-23b5-4d1c-b521-adf3a317941f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_GOOGLEPALMAPI_CREDENTIAL_ID",
+          "name": "Configure your googlePalmApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "{{WHATSAPP_PHONE_NUMBER_ID}}",
+        "recipientPhoneNumber": "{{YOUR_WHATSAPP_NUMBER}}",
+        "textBody": "=📧 EMAIL ANALYSIS\n\nFrom: {{ $('Gmail Trigger').item.json.from.text }}\nTo: {{ $('Gmail Trigger').item.json.to.text }}\nSubject: {{ $('Gmail Trigger').item.json.subject }}\n\n━━━━━━━━━━━━━━\n\n📂 Category:\n{{ $('Basic LLM Chain').item.json.output.category }}\n\n🚨 Priority:\n{{ $('Basic LLM Chain').item.json.output.priority }}\n\n📝 Summary:\n{{ $('Basic LLM Chain').item.json.output.summary }}\n\n🎯 Action:\n{{ $('Basic LLM Chain').item.json.output.action }}\n\n↩️ Requires Reply:\n{{ $('Basic LLM Chain').item.json.output.requires_reply }}\n\n━━━━━━━━━━━━━━\n\n✉️ DRAFT REPLY\n\n{{ $('Basic LLM Chain').item.json.output.draft_reply }}\n\n━━━━━━━━━━━━━━\n\n📞 Phone Numbers:\n{{ $('Basic LLM Chain').item.json.output.phone_numbers.join(', ') }}\n\n🔗 Links:\n{{ \n  $('Basic LLM Chain').item.json.output.links.length\n    ? $('Basic LLM Chain').item.json.output.links.slice(0, 3).map((link, i) => `${i + 1}. ${link.length > 250 ? link.slice(0, 250) + '...' : link}`).join('\\n')\n    : 'No links'\n}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        144
+      ],
+      "id": "7d657108-22ad-44e5-9709-7bf430a045d1",
+      "name": "Send message",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WHATSAPPAPI_CREDENTIAL_ID",
+          "name": "Configure your whatsAppApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\n\nconst attachments = Object.keys(item.binary ?? {}).map(key => ({\n  key,\n  fileName: item.binary[key].fileName,\n  mimeType: item.binary[key].mimeType,\n  fileSize: item.binary[key].fileSize,\n}));\n\nitem.json.attachments = attachments;\n\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        32
+      ],
+      "id": "28974adc-ccec-492f-a162-45708ad88e37",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/{{WHATSAPP_PHONE_NUMBER_ID}}/media",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "attachment_0"
+            },
+            {
+              "name": "type",
+              "value": "={{ $binary.attachment_0.mimeType }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        96,
+        416
+      ],
+      "id": "ed0603dd-b6ff-4202-9b11-c5cc607f27f8",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_HTTPHEADERAUTH_CREDENTIAL_ID",
+          "name": "Configure your httpHeaderAuth credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/{{WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{YOUR_WHATSAPP_NUMBER}}\",\n  \"type\": \"document\",\n  \"document\": {\n    \"id\": \"{{ $json.id }}\",\n    \"filename\": \"{{ $('Prepare Attachments').item.json.fileName }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        272,
+        384
+      ],
+      "id": "a463c5f3-37ea-4bc4-97f0-2930cdb28552",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_HTTPHEADERAUTH_CREDENTIAL_ID",
+          "name": "Configure your httpHeaderAuth credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\nconst binary = item.binary ?? {};\n\nconst attachmentKeys = Object.keys(binary);\n\nreturn attachmentKeys.map((key) => {\n  const attachment = binary[key];\n\n  return {\n    json: {\n      attachmentKey: key,\n      fileName: attachment.fileName || key,\n      mimeType: attachment.mimeType,\n      fileSize: attachment.fileSize,\n    },\n    binary: {\n      attachment_0: {\n        ...attachment,\n        fileName: attachment.fileName || key,\n      },\n    },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        416
+      ],
+      "id": "d80c3ff1-aaef-4574-8369-e3dd0562fe7d",
+      "name": "Prepare Attachments"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "email_assistant",
+          "mode": "list",
+          "cachedResultName": "email_assistant"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $('Gmail Trigger').item.json.id }}",
+            "thread_id": "={{ $('Gmail Trigger').item.json.threadId }}",
+            "sender": "={{ $('Gmail Trigger').item.json.from.text }}",
+            "recipient": "={{ $('Gmail Trigger').item.json.to.text }}",
+            "subject": "={{ $('Gmail Trigger').item.json.subject }}",
+            "category": "={{ $('Basic LLM Chain').item.json.output.category }}",
+            "priority": "={{ $('Basic LLM Chain').item.json.output.priority }}",
+            "summary": "={{ $('Basic LLM Chain').item.json.output.summary }}",
+            "action": "={{ $('Basic LLM Chain').item.json.output.action }}",
+            "requires_reply": "={{ $('Basic LLM Chain').item.json.output.requires_reply }}",
+            "draft_reply": "={{ $('Basic LLM Chain').item.json.output.draft_reply }}",
+            "status": "pending",
+            "links": "={{ JSON.stringify($('Basic LLM Chain').item.json.output.links || []) }}",
+            "phone_numbers": "={{ JSON.stringify($('Basic LLM Chain').item.json.output.phone_numbers || []) }}",
+            "attachments": "={{ Object.values($('Gmail Trigger').item.binary || {}).map(file => file.fileName).join(', ') }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "thread_id",
+              "displayName": "thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sender",
+              "displayName": "sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "recipient",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requires_reply",
+              "displayName": "requires_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "draft_reply",
+              "displayName": "draft_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "draft_id",
+              "displayName": "draft_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "links",
+              "displayName": "links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_numbers",
+              "displayName": "phone_numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "attachments",
+              "displayName": "attachments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        320,
+        0
+      ],
+      "id": "784ce2d4-188f-4cbd-96aa-e897864ece08",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "email_assistant"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "updated_at": "={{ $now }}",
+            "message_id": "={{ $('Gmail Trigger').item.json.id }}",
+            "draft_id": "={{ $('Create a draft').item.json.id }}"
+          },
+          "matchingColumns": [
+            "message_id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "thread_id",
+              "displayName": "thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sender",
+              "displayName": "sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "recipient",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "requires_reply",
+              "displayName": "requires_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "draft_reply",
+              "displayName": "draft_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "draft_id",
+              "displayName": "draft_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "links",
+              "displayName": "links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "phone_numbers",
+              "displayName": "phone_numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "attachments",
+              "displayName": "attachments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        880,
+        -16
+      ],
+      "id": "c7c4f8b1-80aa-4677-a907-fb526e7f1d92",
+      "name": "Update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/{{WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  messaging_product: \"whatsapp\",\n  to: \"{{YOUR_WHATSAPP_NUMBER}}\",\n  type: \"interactive\",\n  interactive: {\n    type: \"button\",\n    body: {\n      text:\n        \"📧 EMAIL ANALYSIS\\n\\n\" +\n        \"From: \" + $('Gmail Trigger').item.json.from.text + \"\\n\" +\n        \"To: \" + $('Gmail Trigger').item.json.to.text + \"\\n\" +\n        \"Subject: \" + $('Gmail Trigger').item.json.subject + \"\\n\\n\" +\n\n        \"📂 Category:\\n\" +\n        $('Basic LLM Chain').item.json.output.category + \"\\n\\n\" +\n\n        \"🚨 Priority:\\n\" +\n        $('Basic LLM Chain').item.json.output.priority + \"\\n\\n\" +\n\n        \"📝 Summary:\\n\" +\n        $('Basic LLM Chain').item.json.output.summary + \"\\n\\n\" +\n\n        \"🎯 Action:\\n\" +\n        $('Basic LLM Chain').item.json.output.action + \"\\n\\n\" +\n\n        \"✉️ DRAFT REPLY\\n\\n\" +\n        $('Basic LLM Chain').item.json.output.draft_reply\n    },\n    action: {\n      buttons: [\n        {\n          type: \"reply\",\n          reply: {\n            id: \"send_email:\" + $('Gmail Trigger').item.json.id,\n            title: \"Send\"\n          }\n        },\n        {\n          type: \"reply\",\n          reply: {\n            id: \"edit_email:\" + $('Gmail Trigger').item.json.id,\n            title: \"Edit\"\n          }\n        },\n        {\n          type: \"reply\",\n          reply: {\n            id: \"add_file:\" + $('Gmail Trigger').item.json.id,\n            title: \"Add File\"\n          }\n        }\n      ]\n    }\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1072,
+        -16
+      ],
+      "id": "4b6cf6f4-b0f6-419e-9ded-9e3f622917f8",
+      "name": "Send Interactive Email Actions",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_HTTPHEADERAUTH_CREDENTIAL_ID",
+          "name": "Configure your httpHeaderAuth credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Gmail Trigger').item.json.subject }}",
+        "message": "={{ $json.draft_reply }}",
+        "options": {
+          "threadId": "={{ $('Gmail Trigger').item.json.threadId }}",
+          "sendTo": "={{ $('Gmail Trigger').item.json.from.value[0].address }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        -16
+      ],
+      "id": "7e40c6d9-f767-4d52-b362-22877f36cd8e",
+      "name": "Create a draft",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Attachments": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Send Interactive Email Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Interactive Email Actions": {
+      "main": [
+        []
+      ]
+    },
+    "Create a draft": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "tags": []
+}

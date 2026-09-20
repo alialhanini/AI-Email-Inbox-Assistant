@@ -1,0 +1,31 @@
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# n8n / local runtime data
+.n8n/
+n8n_data/
+postgres_data/
+pgadmin_data/
+
+# Logs
+*.log
+logs/
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporary / backup files
+*.tmp
+*.bak
+*.swp
+
+# Credentials / secrets
+credentials.json
+secrets.json
+*.pem
+*.key

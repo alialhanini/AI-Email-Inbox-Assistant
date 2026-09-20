@@ -1,0 +1,3020 @@
+{
+  "name": "WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        -320
+      ],
+      "id": "979fc691-15f8-4f74-adc3-98948e0acac9",
+      "name": "WhatsApp Trigger",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "REPLACE_WHATSAPPTRIGGERAPI_CREDENTIAL_ID",
+          "name": "Configure your whatsAppTriggerApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f33bc0c-e72d-432c-b2c5-9c023cfd0c3f",
+              "name": "message",
+              "value": "={{$json.messages[0].text.body}}",
+              "type": "string"
+            },
+            {
+              "id": "13a8692e-680e-4f5c-b375-2f973a52ebfb",
+              "name": "from",
+              "value": "={{$json.messages[0].from}}",
+              "type": "string"
+            },
+            {
+              "id": "10aa8a9e-bd66-49a7-add9-da5286a86386",
+              "name": "button_id",
+              "value": "={{ $json.messages[0].interactive.button_reply.id }}",
+              "type": "string"
+            },
+            {
+              "id": "be78000c-fc00-4b5a-9a80-153c52cf36e6",
+              "name": "document_id",
+              "value": "={{ $json.messages?.[0]?.document?.id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "37d22f72-e859-4d58-804a-44c704824753",
+              "name": "message_type",
+              "value": "={{ $json.messages?.[0]?.type || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "bfd06aad-72e5-406f-8746-8367a3c417f3",
+              "name": "document_name",
+              "value": "={{ $json.messages?.[0]?.document?.filename || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "34f4679f-9304-4ba5-8186-1f3c1ff14263",
+              "name": "document_mime_type",
+              "value": "={{ $json.messages?.[0]?.document?.mime_type || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -176,
+        -336
+      ],
+      "id": "0d03e4a6-b5bd-4ac0-a74c-8415d8716a1c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.message }}",
+        "options": {
+          "systemMessage": "=You are an AI assistant for an email management system.\n\nYou receive:\n- The user's WhatsApp message.\n- Email records retrieved from the PostgreSQL table \"email_assistant\".\n- The retrieved email records are provided in the field \"emails\".\n\nEmail records:\n{{ JSON.stringify($json.emails) }}\n\nYour job is to understand the user's request and answer accurately using the provided email records.\n\nThe available email fields are:\n- id\n- created_at\n- updated_at\n- message_id\n- thread_id\n- sender\n- recipient\n- subject\n- category\n- priority\n- summary\n- action\n- requires_reply\n- draft_reply\n- draft_id\n- status\n- links\n- phone_numbers\n- attachments\n\nIMPORTANT RULES:\n- Always use the actual values contained in the provided email records.\n- Never output n8n expressions or variable placeholders.\n- Never invent field names.\n- Never invent email information that is not present in the records.\n- If information is unavailable, say that it is unavailable.\n- If no matching email exists, clearly say that no matching email was found.\n\nWhen the user asks for the latest email:\n- Determine the latest email using created_at.\n- Return the actual sender.\n- Return the actual subject.\n- Return the actual summary.\n- Return the priority.\n- Return whether a reply is required.\n- Include other relevant information only when useful.\n\nWhen the user asks about a specific email:\n- Find the most relevant matching email from the provided records.\n- Use its actual stored information to answer.\n\nWhen the user asks which emails require a reply:\n- Use the requires_reply field.\n- Clearly identify the matching emails.\n\nWhen the user asks for a draft reply:\n- Use the draft_reply field from the matching email.\n- Do not create a new draft unless the user explicitly asks you to suggest a new reply.\n\nWhen the user asks about attachments:\n- Use the attachments field from the matching email.\n\nWhen the user asks about links or phone numbers:\n- Use the links and phone_numbers fields from the matching email.\n\nDo not claim that you sent, replied to, edited, deleted, or modified an email unless the workflow actually performed that action.\n\nRespond in the same language the user uses.\n\nKeep the response concise, clear, and natural because it will be sent through WhatsApp."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1104,
+        320
+      ],
+      "id": "ec60e3f5-06ae-45f0-ad7c-03ca0f716306",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        512
+      ],
+      "id": "1bf7b125-b0b0-4e91-a1e1-fa00ac0c8191",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_GOOGLEPALMAPI_CREDENTIAL_ID",
+          "name": "Configure your googlePalmApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "{{WHATSAPP_PHONE_NUMBER_ID}}",
+        "recipientPhoneNumber": "={{ $('Edit Fields').item.json.from }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1408,
+        320
+      ],
+      "id": "19a44a32-6171-4186-b771-17842b57d18b",
+      "name": "Send message",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WHATSAPPAPI_CREDENTIAL_ID",
+          "name": "Configure your whatsAppApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "email_assistant"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        736,
+        320
+      ],
+      "id": "45497cdc-9dbf-4943-a6ed-a0b888a742e7",
+      "name": "Select rows from a table",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "emails",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        928,
+        320
+      ],
+      "id": "107685b9-70b9-48df-9df9-b3aedd08cfac",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.button_id }}",
+                    "rightValue": "send_email:",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "1ddc7851-b0c1-4ca8-b2fa-1b9888264b30"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Send"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1e0a867e-5e96-40c7-abd2-a86b39b87128",
+                    "leftValue": "={{ $json.button_id }}",
+                    "rightValue": "edit_email:",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Edit"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c517efa5-1c99-45f0-86c2-5969fa7b7894",
+                    "leftValue": "={{ $json.button_id }}",
+                    "rightValue": "add_file:",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Add File"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        -352
+      ],
+      "id": "9acfb8c5-d5d2-4ad6-8fb7-5b8b0aa42457",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "815b6742-5644-490a-a5cb-0c03089c1b4a",
+              "name": "message_id",
+              "value": "={{ $json.button_id.split(':')[1] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        528,
+        -496
+      ],
+      "id": "e1857327-b020-49bd-b53d-53ab7426734e",
+      "name": "Extract Message ID"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "email_assistant"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "message_id",
+              "value": "={{ $('Extract Message ID').item.json.message_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        720,
+        -512
+      ],
+      "id": "0e4ca027-40f8-47e2-b8b7-8b735a333ecc",
+      "name": "Get Email to Send",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/drafts/send",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  id: $('Get Email to Send').item.json.draft_id\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        864,
+        -512
+      ],
+      "id": "cd737cf1-12d7-46d4-9426-26b6ec07ea65",
+      "name": "Send Gmail Draft",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "email_assistant"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $('Extract Message ID').item.json.message_id }}",
+            "status": "sent",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "message_id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "thread_id",
+              "displayName": "thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sender",
+              "displayName": "sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "recipient",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requires_reply",
+              "displayName": "requires_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "draft_reply",
+              "displayName": "draft_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "draft_id",
+              "displayName": "draft_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "links",
+              "displayName": "links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_numbers",
+              "displayName": "phone_numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "attachments",
+              "displayName": "attachments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1040,
+        -512
+      ],
+      "id": "2706cc9e-311b-4cab-97dd-b346ac1b3e71",
+      "name": "Update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "{{WHATSAPP_PHONE_NUMBER_ID}}",
+        "recipientPhoneNumber": "={{ $('Edit Fields').item.json.from }}",
+        "textBody": "✅ Reply sent successfully. ",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1216,
+        -512
+      ],
+      "id": "f67853a3-7f23-453a-95cc-56a33abe97de",
+      "name": "Send message1",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WHATSAPPAPI_CREDENTIAL_ID",
+          "name": "Configure your whatsAppApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "763ca32c-5ebc-482f-ade3-9d8eb4e1b731",
+              "name": "message_id",
+              "value": "={{ $json.button_id.split(':')[1] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        528,
+        -336
+      ],
+      "id": "65a66947-0c9c-44d7-8ed5-67c818a4fba4",
+      "name": "Extract Edit Message ID"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "email_assistant"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "message_id",
+              "value": "={{ $('Extract Edit Message ID').item.json.message_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        752,
+        -336
+      ],
+      "id": "e8765cf2-04f5-4fbd-ba5b-ca461c3a4f7a",
+      "name": "Get Email to Edit",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "{{WHATSAPP_PHONE_NUMBER_ID}}",
+        "recipientPhoneNumber": "={{ $('Edit Fields').item.json.from }}",
+        "textBody": "✏️ Please send the new reply text for this email.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        -336
+      ],
+      "id": "e1ba4279-4b27-4ce3-920c-7172e74fbc50",
+      "name": "Request Edited Reply",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WHATSAPPAPI_CREDENTIAL_ID",
+          "name": "Configure your whatsAppApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "email_assistant"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $('Extract Edit Message ID').item.json.message_id }}",
+            "status": "awaiting_edit",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "message_id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "thread_id",
+              "displayName": "thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sender",
+              "displayName": "sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "recipient",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requires_reply",
+              "displayName": "requires_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "draft_reply",
+              "displayName": "draft_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "draft_id",
+              "displayName": "draft_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "links",
+              "displayName": "links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_numbers",
+              "displayName": "phone_numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "attachments",
+              "displayName": "attachments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1200,
+        -336
+      ],
+      "id": "61c8f484-0ab1-4393-b42e-9d271c382376",
+      "name": "Set Awaiting Edit",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "whatsapp_sessions",
+          "mode": "list",
+          "cachedResultName": "whatsapp_sessions"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "whatsapp_user",
+              "value": "={{ $('Edit Fields').item.json.from }}"
+            },
+            {
+              "column": "state",
+              "value": "awaiting_edit"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        416,
+        176
+      ],
+      "id": "108b11a1-41be-4345-8f58-c2ca1e133fe2",
+      "name": "Check Awaiting Edit",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a0d76317-4bf2-47e3-80c7-367c80ac5c41",
+              "leftValue": "={{ $json.current_message_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        176
+      ],
+      "id": "a13e8fa1-6615-4786-ad0a-b309ecc9139e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/drafts/{{ $json.draft_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"id\": \"{{ $json.draft_id }}\",\n  \"message\": {\n    \"raw\": \"{{ $json.raw }}\",\n    \"threadId\": \"{{ $json.thread_id }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1664,
+        80
+      ],
+      "id": "46d79b20-9b02-4164-a3fd-306ba76d626f",
+      "name": "Update Gmail Draft",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('Select rows from a table1').item.json;\nconst newReply = $('AI Edit Draft').item.json.text;\nconst draft = $('Get Current Draft For Edit').item.json;\n\nconst currentRaw = draft.message?.raw;\n\nif (!currentRaw) {\n  throw new Error('Current Gmail draft raw MIME not found');\n}\n\n// Base64URL → MIME\nlet base64 = currentRaw\n  .replace(/-/g, '+')\n  .replace(/_/g, '/');\n\nwhile (base64.length % 4) {\n  base64 += '=';\n}\n\nlet mime = Buffer.from(base64, 'base64').toString('utf8');\n\n// Read top-level headers\nconst headerEnd = mime.search(/\\r?\\n\\r?\\n/);\n\nif (headerEnd === -1) {\n  throw new Error('Could not parse Gmail draft MIME');\n}\n\nconst headers = mime.slice(0, headerEnd);\nconst unfoldedHeaders = headers.replace(/\\r?\\n[ \\t]+/g, ' ');\n\n// Check if draft is multipart/mixed\nconst mixedMatch = unfoldedHeaders.match(\n  /Content-Type:\\s*multipart\\/mixed\\b[^;\\r\\n]*;\\s*boundary=\"?([^\";\\r\\n]+)\"?/i\n);\n\nif (mixedMatch) {\n  // Draft contains attachments\n  const boundary = mixedMatch[1];\n  const delimiter = `--${boundary}`;\n\n  const parts = mime.split(delimiter);\n\n  let textPartUpdated = false;\n\n  for (let i = 1; i < parts.length; i++) {\n    const part = parts[i];\n\n    // Skip closing boundary\n    if (part.trim().startsWith('--')) {\n      continue;\n    }\n\n    const separatorMatch = part.match(/\\r?\\n\\r?\\n/);\n\n    if (!separatorMatch) {\n      continue;\n    }\n\n    const separatorIndex = separatorMatch.index;\n    const separator = separatorMatch[0];\n\n    let partHeaders = part.slice(0, separatorIndex);\n\n    if (/Content-Type:\\s*text\\/plain\\b/i.test(partHeaders)) {\n      // Make sure body is treated as plain UTF-8 text\n      if (/Content-Transfer-Encoding:/i.test(partHeaders)) {\n        partHeaders = partHeaders.replace(\n          /Content-Transfer-Encoding:[^\\r\\n]*/i,\n          'Content-Transfer-Encoding: 8bit'\n        );\n      }\n\n      parts[i] =\n        partHeaders +\n        separator +\n        newReply +\n        '\\r\\n';\n\n      textPartUpdated = true;\n      break;\n    }\n  }\n\n  if (!textPartUpdated) {\n    throw new Error('Could not find text/plain body in multipart Gmail draft');\n  }\n\n  mime = parts.join(delimiter);\n\n} else {\n  // Draft has no attachments\n  // Preserve existing headers and replace only the message body\n  const separatorMatch = mime.match(/\\r?\\n\\r?\\n/);\n\n  if (!separatorMatch) {\n    throw new Error('Could not find Gmail draft body');\n  }\n\n  const separatorIndex = separatorMatch.index;\n  const separator = separatorMatch[0];\n\n  let currentHeaders = mime.slice(0, separatorIndex);\n\n  if (/Content-Transfer-Encoding:/i.test(currentHeaders)) {\n    currentHeaders = currentHeaders.replace(\n      /Content-Transfer-Encoding:[^\\r\\n]*/i,\n      'Content-Transfer-Encoding: 8bit'\n    );\n  }\n\n  mime =\n    currentHeaders +\n    separator +\n    newReply;\n}\n\n// MIME → Base64URL\nconst raw = Buffer.from(mime, 'utf8')\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\nreturn [{\n  json: {\n    ...email,\n    new_reply: newReply,\n    raw\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        80
+      ],
+      "id": "a6c31a1d-3673-4a63-9923-d4b492f75d0f",
+      "name": "Prepare Updated Draft"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "email_assistant"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $('Prepare Updated Draft').item.json.message_id }}",
+            "draft_reply": "={{ $('Prepare Updated Draft').item.json.new_reply }}",
+            "status": "pending",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "message_id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "thread_id",
+              "displayName": "thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sender",
+              "displayName": "sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "recipient",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "requires_reply",
+              "displayName": "requires_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "draft_reply",
+              "displayName": "draft_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "draft_id",
+              "displayName": "draft_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "links",
+              "displayName": "links",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone_numbers",
+              "displayName": "phone_numbers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "attachments",
+              "displayName": "attachments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        2624,
+        80
+      ],
+      "id": "7470659c-ff9e-4770-9d90-aeffa201641d",
+      "name": "Save Edited Reply",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are editing an existing email draft based on the user's WhatsApp instruction.\n\nCURRENT EMAIL DRAFT:\n{{ $json.draft_reply }}\n\nUSER'S EDIT REQUEST:\n{{ $('Edit Fields').item.json.message }}\n\nUnderstand the user's intent and produce the final revised email draft.\n\nRules:\n- If the user asks to add, remove, simplify, shorten, expand, rewrite, or change the tone, modify the existing draft accordingly.\n- If the user provides a complete replacement email, use it as the new draft.\n- Preserve relevant information from the existing draft unless the user asks to change it.\n- Do not invent facts, dates, names, commitments, or other information.\n- Follow instructions written in Arabic or English.\n- The final email may be in the language requested by the user.\n- Return ONLY the final email text.\n- Do not explain what you changed.\n- Do not use markdown or quotation marks around the email.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        944,
+        80
+      ],
+      "id": "6c2d89d1-e509-49a4-a1b9-720adba0cf70",
+      "name": "AI Edit Draft"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        192
+      ],
+      "id": "538c7c24-4b21-4ceb-9e53-38590384eae8",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "REPLACE_GOOGLEPALMAPI_CREDENTIAL_ID",
+          "name": "Configure your googlePalmApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a30f4c91-283b-4894-8063-cdbbb8008062",
+              "leftValue": "={{ Array.isArray($json.messages) && $json.messages.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -416,
+        -320
+      ],
+      "id": "960c1391-10eb-4449-87cb-fe4f74350786",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "whatsapp_sessions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_user": "={{ $('Edit Fields').item.json.from }}",
+            "current_message_id": "={{ $('Extract Edit Message ID').item.json.message_id }}",
+            "state": "awaiting_edit",
+            "last_action": "edit",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "whatsapp_user"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_user",
+              "displayName": "whatsapp_user",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_message_id",
+              "displayName": "current_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "last_action",
+              "displayName": "last_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1424,
+        -336
+      ],
+      "id": "9d23bf27-a19b-45b7-af89-4560370f7510",
+      "name": "Insert or update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "email_assistant",
+          "mode": "list",
+          "cachedResultName": "email_assistant"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "message_id",
+              "value": "={{ $('Check Awaiting Edit').item.json.current_message_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        784,
+        80
+      ],
+      "id": "a31befeb-b774-40bb-b1a5-cd66410f40d6",
+      "name": "Select rows from a table1",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "whatsapp_sessions",
+          "mode": "list",
+          "cachedResultName": "whatsapp_sessions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_user": "={{ $('Edit Fields').item.json.from }}",
+            "state": "idle",
+            "last_action": "edit_completed",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "whatsapp_user"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_user",
+              "displayName": "whatsapp_user",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_message_id",
+              "displayName": "current_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action",
+              "displayName": "last_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        2800,
+        80
+      ],
+      "id": "3ea0489f-d2d8-46f4-a7a1-5c4e83113574",
+      "name": "Update rows in a table1",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "whatsapp_sessions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_user": "={{ $('Edit Fields').item.json.from }}",
+            "state": "idle",
+            "last_action": "send_completed",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "whatsapp_user"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_user",
+              "displayName": "whatsapp_user",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_message_id",
+              "displayName": "current_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action",
+              "displayName": "last_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1440,
+        -512
+      ],
+      "id": "2fb624bc-7d59-48c5-9e7e-cb93816c8346",
+      "name": "Update rows in a table2",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3bcd12a9-5764-47f7-9b6f-6a81eb06aace",
+              "name": "message_id",
+              "value": "={{ $json.button_id.split(':')[1] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        528,
+        -128
+      ],
+      "id": "97c3ea9e-92d6-41b0-8faf-f13ae77dbba4",
+      "name": "Extract Add File Message ID"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "whatsapp_sessions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_user": "={{ $('Edit Fields').item.json.from }}",
+            "current_message_id": "={{ $('Extract Add File Message ID').item.json.message_id }}",
+            "state": "awaiting_file",
+            "last_action": "add_file",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "whatsapp_user"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_user",
+              "displayName": "whatsapp_user",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_message_id",
+              "displayName": "current_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "last_action",
+              "displayName": "last_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        752,
+        -128
+      ],
+      "id": "b7e229c8-e1ae-4edc-8832-f4c72bbe3e38",
+      "name": "Insert or update rows in a table1",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "{{WHATSAPP_PHONE_NUMBER_ID}}",
+        "recipientPhoneNumber": "={{ $('Edit Fields').item.json.from }}",
+        "textBody": "📎 Please send the file you want to attach to this email.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        -128
+      ],
+      "id": "57242ea4-5916-4b4f-ba0b-1e33cba30a63",
+      "name": "Send message3",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WHATSAPPAPI_CREDENTIAL_ID",
+          "name": "Configure your whatsAppApi credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e1cad0bb-d788-46fe-9a08-69fd71447eca",
+              "leftValue": "={{ $json.message_type }}",
+              "rightValue": "document",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        -336
+      ],
+      "id": "ee392ee8-6606-4e40-ac39-821e9dd73c63",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "whatsapp_sessions"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "whatsapp_user",
+              "value": "={{ $('Edit Fields').item.json.from }}"
+            },
+            {
+              "column": "state",
+              "value": "awaiting_file"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        192,
+        -608
+      ],
+      "id": "f22c876f-ead2-4c41-bbeb-bdd4109ed37f",
+      "name": "Select rows from a table2",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8acfced1-5922-4639-aea2-ad99feb3c41a",
+              "leftValue": "={{ $json.current_message_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        -672
+      ],
+      "id": "5fe12dc6-c340-419e-96a0-a88ebdb5a419",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "email_assistant"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "message_id",
+              "value": "={{ $('Select rows from a table2').item.json.current_message_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        608,
+        -704
+      ],
+      "id": "59a3352d-9297-485a-bb8a-5d75b91d86e0",
+      "name": "Select rows from a table3",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v23.0/{{ $('Edit Fields').item.json.document_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        976,
+        -704
+      ],
+      "id": "68b8ab54-55d0-4009-a601-4512305fba80",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_HTTPHEADERAUTH_CREDENTIAL_ID",
+          "name": "Configure your httpHeaderAuth credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('HTTP Request').item.json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1152,
+        -704
+      ],
+      "id": "1e5fda55-5d95-4953-a228-0a084bfd16b0",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_HTTPHEADERAUTH_CREDENTIAL_ID",
+          "name": "Configure your httpHeaderAuth credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const email = $('Select rows from a table3').item.json;\nconst draft = $('Get Current Gmail Draft').item.json;\nconst input = $input.item;\n\nconst binary = input.binary?.attachment_0;\n\nif (!binary) {\n  throw new Error('Attachment binary not found');\n}\n\nconst fileBuffer = await this.helpers.getBinaryDataBuffer(\n  0,\n  'attachment_0'\n);\n\nconst fileName =\n  input.json.fileName ||\n  binary.fileName ||\n  'attachment';\n\nconst mimeType =\n  input.json.mimeType ||\n  binary.mimeType ||\n  'application/octet-stream';\n\nconst safeFileName = fileName.replace(/[\\r\\n\"]/g, '_');\n\nfunction decodeBase64Url(value) {\n  value = value.replace(/-/g, '+').replace(/_/g, '/');\n\n  while (value.length % 4) {\n    value += '=';\n  }\n\n  return Buffer.from(value, 'base64').toString('utf8');\n}\n\nfunction encodeBase64Url(value) {\n  return Buffer.from(value)\n    .toString('base64')\n    .replace(/\\+/g, '-')\n    .replace(/\\//g, '_')\n    .replace(/=+$/, '');\n}\n\nfunction wrapBase64(buffer) {\n  const base64 = buffer.toString('base64');\n  return base64.match(/.{1,76}/g)?.join('\\r\\n') || '';\n}\n\nconst currentRaw = draft.message?.raw;\n\nif (!currentRaw) {\n  throw new Error('Current Gmail draft raw MIME not found');\n}\n\nconst currentMime = decodeBase64Url(currentRaw);\n\nconst headerEnd = currentMime.search(/\\r?\\n\\r?\\n/);\n\nif (headerEnd === -1) {\n  throw new Error('Could not parse current Gmail MIME');\n}\n\nconst headers = currentMime.slice(0, headerEnd);\nconst unfoldedHeaders = headers.replace(/\\r?\\n[ \\t]+/g, ' ');\n\nconst mixedMatch = unfoldedHeaders.match(\n  /Content-Type:\\s*multipart\\/mixed\\b[^;\\r\\n]*;\\s*boundary=\"?([^\";\\r\\n]+)\"?/i\n);\n\nlet finalMime;\n\nif (mixedMatch) {\n  const boundary = mixedMatch[1];\n  const closingBoundary = `--${boundary}--`;\n\n  const closingIndex = currentMime.lastIndexOf(closingBoundary);\n\n  if (closingIndex === -1) {\n    throw new Error('Multipart closing boundary not found');\n  }\n\n  const newAttachmentPart =\n    `--${boundary}\\r\\n` +\n    `Content-Type: ${mimeType}; name=\"${safeFileName}\"\\r\\n` +\n    `Content-Disposition: attachment; filename=\"${safeFileName}\"\\r\\n` +\n    `Content-Transfer-Encoding: base64\\r\\n` +\n    `\\r\\n` +\n    `${wrapBase64(fileBuffer)}\\r\\n`;\n\n  finalMime =\n    currentMime.slice(0, closingIndex) +\n    newAttachmentPart +\n    currentMime.slice(closingIndex);\n\n} else {\n  const boundary = `n8n_${Date.now()}`;\n\n  finalMime =\n    `To: ${email.sender}\\r\\n` +\n    `Subject: Re: ${email.subject}\\r\\n` +\n    `MIME-Version: 1.0\\r\\n` +\n    `Content-Type: multipart/mixed; boundary=\"${boundary}\"\\r\\n` +\n    `\\r\\n` +\n\n    `--${boundary}\\r\\n` +\n    `Content-Type: text/plain; charset=\"UTF-8\"\\r\\n` +\n    `Content-Transfer-Encoding: 8bit\\r\\n` +\n    `\\r\\n` +\n    `${email.draft_reply || ''}\\r\\n` +\n\n    `--${boundary}\\r\\n` +\n    `Content-Type: ${mimeType}; name=\"${safeFileName}\"\\r\\n` +\n    `Content-Disposition: attachment; filename=\"${safeFileName}\"\\r\\n` +\n    `Content-Transfer-Encoding: base64\\r\\n` +\n    `\\r\\n` +\n    `${wrapBase64(fileBuffer)}\\r\\n` +\n\n    `--${boundary}--`;\n}\n\nconst raw = encodeBase64Url(finalMime);\n\nreturn {\n  json: {\n    message_id: email.message_id,\n    draft_id: email.draft_id,\n    thread_id: email.thread_id,\n    fileName,\n    mimeType,\n    raw,\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -704
+      ],
+      "id": "5d6767b2-2494-4b7f-b497-48b3058e10a7",
+      "name": "Prepare Gmail Draft With Attachment"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/drafts/{{ $('Prepare Gmail Draft With Attachment').item.json.draft_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"id\": \"{{ $('Prepare Gmail Draft With Attachment').item.json.draft_id }}\",\n  \"message\": {\n    \"raw\": \"{{ $('Prepare Gmail Draft With Attachment').item.json.raw }}\",\n    \"threadId\": \"{{ $('Prepare Gmail Draft With Attachment').item.json.thread_id }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1712,
+        -704
+      ],
+      "id": "f9c77c46-35a9-426c-95fc-96b5fc1a806d",
+      "name": "HTTP Request2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "whatsapp_sessions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "whatsapp_user": "={{ $('Edit Fields').item.json.from }}",
+            "state": "awaiting_file",
+            "last_action": "awaiting_more_files",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "whatsapp_user"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "whatsapp_user",
+              "displayName": "whatsapp_user",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_message_id",
+              "displayName": "current_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action",
+              "displayName": "last_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        2672,
+        -704
+      ],
+      "id": "0fce25cb-3e1e-4342-8667-9dbe7fe8896e",
+      "name": "Update rows in a table3",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CREDENTIAL_ID",
+          "name": "Configure your postgres credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/drafts/{{ $('Select rows from a table3').item.json.draft_id }}?format=raw",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        784,
+        -704
+      ],
+      "id": "d36dd4bb-c5ce-4be1-b98d-f668793d5898",
+      "name": "Get Current Gmail Draft",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\n\nconst fileName = $('Edit Fields').item.json.document_name || 'attachment';\nconst mimeType = $('Edit Fields').item.json.document_mime_type || 'application/octet-stream';\n\nreturn [{\n  json: {\n    ...item.json,\n    fileName,\n    mimeType,\n  },\n  binary: {\n    attachment_0: {\n      ...item.binary.data,\n      fileName,\n      mimeType,\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        -704
+      ],
+      "id": "52a7e56c-dc9d-407b-afb0-707e4967a365",
+      "name": "Prepare WhatsApp Attachment"
+    },
+    {
+      "parameters": {
+        "jsCode": "const draft = $('Get Updated Gmail Draft').item.json;\n\nconst raw = draft.message?.raw;\n\nif (!raw) {\n  throw new Error('Gmail draft raw message not found');\n}\n\n// Base64URL → MIME text\nlet base64 = raw\n  .replace(/-/g, '+')\n  .replace(/_/g, '/');\n\nwhile (base64.length % 4) {\n  base64 += '=';\n}\n\nconst mime = Buffer.from(base64, 'base64').toString('utf8');\n\n// Extract attachment filenames\nconst fileNames = [];\n\nconst regex =\n  /Content-Disposition:\\s*attachment[\\s\\S]*?filename\\s*=\\s*(?:\"([^\"]+)\"|([^\\r\\n;]+))/gi;\n\nlet match;\n\nwhile ((match = regex.exec(mime)) !== null) {\n  const name = (match[1] || match[2] || '').trim();\n\n  if (name && !fileNames.includes(name)) {\n    fileNames.push(name);\n  }\n}\n\nreturn [{\n  json: {\n    attachment_names: fileNames,\n    attachment_count: fileNames.length,\n    attachments_text: fileNames.length\n      ? fileNames.map((name, i) => `${i + 1}. ${name}`).join('\\n')\n      : 'No attachments'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        -704
+      ],
+      "id": "35016106-6e65-4e0d-bd8f-6a33399954a1",
+      "name": "Extract Draft Attachments"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b7a03511-0edf-4d65-b5e0-e21dd46e6fd4",
+              "name": "preview_message",
+              "value": "={{  `✅ Draft updated successfully  ✉️ CURRENT REPLY  ${$('Select rows from a table3').item.json.draft_reply}  ━━━━━━━━━━━━━━  📎 ATTACHMENTS  ${$('Extract Draft Attachments').item.json.attachments_text}  ━━━━━━━━━━━━━━  What would you like to do?` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2288,
+        -704
+      ],
+      "id": "f7ba3e25-28ca-4733-8f58-daed041345b4",
+      "name": "Prepare Draft Preview"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/{{WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"messaging_product\": \"whatsapp\",\n  \"to\": $('Edit Fields').item.json.from,\n  \"type\": \"interactive\",\n  \"interactive\": {\n    \"type\": \"button\",\n    \"body\": {\n      \"text\": $('Prepare Draft Preview').item.json.preview_message\n    },\n    \"action\": {\n      \"buttons\": [\n        {\n          \"type\": \"reply\",\n          \"reply\": {\n            \"id\": \"send_email:\" + $('Select rows from a table3').item.json.message_id,\n            \"title\": \"Send\"\n          }\n        },\n        {\n          \"type\": \"reply\",\n          \"reply\": {\n            \"id\": \"edit_email:\" + $('Select rows from a table3').item.json.message_id,\n            \"title\": \"Edit\"\n          }\n        },\n        {\n          \"type\": \"reply\",\n          \"reply\": {\n            \"id\": \"add_file:\" + $('Select rows from a table3').item.json.message_id,\n            \"title\": \"Add File\"\n          }\n        }\n      ]\n    }\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2480,
+        -704
+      ],
+      "id": "e043c835-28d0-4b6f-9ff2-7dbfc589b87d",
+      "name": "Send Draft Preview Actions",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_HTTPHEADERAUTH_CREDENTIAL_ID",
+          "name": "Configure your httpHeaderAuth credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/drafts/{{ $('Prepare Gmail Draft With Attachment').item.json.draft_id }}?format=raw",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1888,
+        -704
+      ],
+      "id": "18a48d23-e5d6-452b-8206-679f04c6aff1",
+      "name": "Get Updated Gmail Draft",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/drafts/{{ $('Select rows from a table1').item.json.draft_id }}?format=raw",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1232,
+        80
+      ],
+      "id": "7096ae49-bba6-411c-a3e4-8ef5bab3b8e7",
+      "name": "Get Current Draft For Edit",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/drafts/{{ $('Prepare Updated Draft').item.json.draft_id }}?format=raw",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1856,
+        80
+      ],
+      "id": "613aa451-7311-4b9c-aa66-ebb716b9f58f",
+      "name": "Get Updated Draft After Edit",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAILOAUTH2_CREDENTIAL_ID",
+          "name": "Configure your gmailOAuth2 credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const draft = $('Get Updated Draft After Edit').item.json;\n\nconst raw = draft.message?.raw;\n\nif (!raw) {\n  throw new Error('Gmail draft raw message not found');\n}\n\n// Base64URL → MIME text\nlet base64 = raw\n  .replace(/-/g, '+')\n  .replace(/_/g, '/');\n\nwhile (base64.length % 4) {\n  base64 += '=';\n}\n\nconst mime = Buffer.from(base64, 'base64').toString('utf8');\n\n// Extract attachment filenames\nconst fileNames = [];\n\nconst regex =\n  /Content-Disposition:\\s*attachment[\\s\\S]*?filename\\s*=\\s*(?:\"([^\"]+)\"|([^\\r\\n;]+))/gi;\n\nlet match;\n\nwhile ((match = regex.exec(mime)) !== null) {\n  const name = (match[1] || match[2] || '').trim();\n\n  if (name && !fileNames.includes(name)) {\n    fileNames.push(name);\n  }\n}\n\nreturn [{\n  json: {\n    attachment_names: fileNames,\n    attachment_count: fileNames.length,\n    attachments_text: fileNames.length\n      ? fileNames.map((name, i) => `${i + 1}. ${name}`).join('\\n')\n      : 'No attachments'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        80
+      ],
+      "id": "881313bc-c4c4-4958-93ae-77165b0f0d56",
+      "name": "Extract Attachments After Edit"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "26d21bf5-f37d-4919-aed0-8011621f13fd",
+              "name": "preview_message",
+              "value": "={{ `✅ Draft updated successfully✉️ UPDATED REPLY${$('Prepare Updated Draft').item.json.new_reply}━━━━━━━━━━━━━━📎 ATTACHMENTS${$('Extract Attachments After Edit').item.json.attachments_text}━━━━━━━━━━━━━━What would you like to do?` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2224,
+        80
+      ],
+      "id": "5e6df2f9-f828-445d-a275-f29a2acb4dfa",
+      "name": "Prepare Edit Draft Preview"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v23.0/{{WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": []
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  messaging_product: \"whatsapp\",\n  to: $('Edit Fields').item.json.from,\n  type: \"interactive\",\n  interactive: {\n    type: \"button\",\n    body: {\n      text: $('Prepare Edit Draft Preview').item.json.preview_message\n    },\n    action: {\n      buttons: [\n        {\n          type: \"reply\",\n          reply: {\n            id: `send_email:${$('Prepare Updated Draft').item.json.message_id}`,\n            title: \"Send\"\n          }\n        },\n        {\n          type: \"reply\",\n          reply: {\n            id: `edit_email:${$('Prepare Updated Draft').item.json.message_id}`,\n            title: \"Edit\"\n          }\n        },\n        {\n          type: \"reply\",\n          reply: {\n            id: `add_file:${$('Prepare Updated Draft').item.json.message_id}`,\n            title: \"Add File\"\n          }\n        }\n      ]\n    }\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2416,
+        80
+      ],
+      "id": "40342fe0-16dd-46cb-b43b-54263594ae09",
+      "name": "Send Edit Draft Preview Actions",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_HTTPHEADERAUTH_CREDENTIAL_ID",
+          "name": "Configure your httpHeaderAuth credential"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract Message ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Edit Message ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Add File Message ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Awaiting Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message ID": {
+      "main": [
+        [
+          {
+            "node": "Get Email to Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email to Send": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Send message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Edit Message ID": {
+      "main": [
+        [
+          {
+            "node": "Get Email to Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email to Edit": {
+      "main": [
+        [
+          {
+            "node": "Request Edited Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Edited Reply": {
+      "main": [
+        [
+          {
+            "node": "Set Awaiting Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Awaiting Edit": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select rows from a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Updated Draft": {
+      "main": [
+        [
+          {
+            "node": "Update Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "Get Updated Draft After Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Edit Draft": {
+      "main": [
+        [
+          {
+            "node": "Get Current Draft For Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Edit Draft",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Edited Reply": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Awaiting Edit": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table1": {
+      "main": [
+        [
+          {
+            "node": "AI Edit Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in a table1": {
+      "main": [
+        []
+      ]
+    },
+    "Send message1": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Add File Message ID": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table1": {
+      "main": [
+        [
+          {
+            "node": "Send message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table2": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table3": {
+      "main": [
+        [
+          {
+            "node": "Get Current Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Prepare WhatsApp Attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Gmail Draft With Attachment": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Get Updated Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in a table3": {
+      "main": [
+        []
+      ]
+    },
+    "Get Current Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare WhatsApp Attachment": {
+      "main": [
+        [
+          {
+            "node": "Prepare Gmail Draft With Attachment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Draft Attachments": {
+      "main": [
+        [
+          {
+            "node": "Prepare Draft Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Draft Preview": {
+      "main": [
+        [
+          {
+            "node": "Send Draft Preview Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Updated Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "Extract Draft Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Draft Preview Actions": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Draft For Edit": {
+      "main": [
+        [
+          {
+            "node": "Prepare Updated Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Updated Draft After Edit": {
+      "main": [
+        [
+          {
+            "node": "Extract Attachments After Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Attachments After Edit": {
+      "main": [
+        [
+          {
+            "node": "Prepare Edit Draft Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Edit Draft Preview": {
+      "main": [
+        [
+          {
+            "node": "Send Edit Draft Preview Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Edit Draft Preview Actions": {
+      "main": [
+        [
+          {
+            "node": "Save Edited Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "tags": []
+}
