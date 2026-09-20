@@ -106,6 +106,26 @@ The user can continue adding files, edit the reply, or send the final email.
                                          Gmail API
 ```
 
+## Demo
+
+### Email Processing Workflow
+
+The main workflow monitors Gmail, analyzes incoming emails with Gemini, stores structured results in PostgreSQL, creates Gmail drafts when a reply is required, and sends the result to WhatsApp.
+
+![Email Processing Workflow](screenshots/email-workflow.png)
+
+### WhatsApp Control Workflow
+
+The WhatsApp controller handles interactive actions including sending drafts, AI-assisted editing, adding attachments, and querying stored emails.
+
+![WhatsApp Control Workflow](screenshots/whatsapp-workflow.png)
+
+### WhatsApp Email Analysis & Actions
+
+Users receive the AI-generated email analysis, suggested draft reply, attachments, and interactive **Send**, **Edit**, and **Add File** actions directly in WhatsApp.
+
+![WhatsApp Email Analysis](screenshots/whatsapp-email-analysis.png)
+
 ## Workflows
 
 The repository contains two n8n workflow exports:
